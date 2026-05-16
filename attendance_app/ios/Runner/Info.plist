@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key><string>zh_CN</string>
+    <key>CFBundleDisplayName</key><string>考勤打卡</string>
+    <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleName</key><string>attendance_app</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>$(FLUTTER_BUILD_NAME)</string>
+    <key>CFBundleVersion</key><string>$(FLUTTER_BUILD_NUMBER)</string>
+    <key>LSRequiresIPhoneOS</key><true/>
+    <key>MinimumOSVersion</key><string>12.0</string>
+    <!-- GPS 权限说明 -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>考勤打卡需要获取您的位置，以验证您是否在允许打卡的范围内。</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>考勤打卡需要您的位置信息进行打卡验证。</string>
+</dict>
+</plist>

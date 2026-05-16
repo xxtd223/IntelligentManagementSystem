@@ -37,3 +37,11 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Flutter / Dart ###
+attendance_app/.dart_tool/
+attendance_app/.flutter-plugins
+attendance_app/.flutter-plugins-dependencies
+attendance_app/build/
+attendance_app/.packages
+attendance_app/pubspec.lock
