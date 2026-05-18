@@ -2,17 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/constants/app_colors.dart';
+import '../services/reminder_service.dart';
 
-class MainShell extends ConsumerWidget {
+class MainShell extends ConsumerStatefulWidget {
   final Widget child;
 
   const MainShell({super.key, required this.child});
 
+  @override
+  ConsumerState<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends ConsumerState<MainShell> {
   static const _tabs = ['/home', '/calendar', '/profile'];
-  static const _icons = [Icons.home_outlined, Icons.calendar_month_outlined,
-      Icons.person_outline];
-  static const _activeIcons = [Icons.home, Icons.calendar_month, Icons.person];
+  static const _icons = [
+    Icons.home_outlined,
+    Icons.calendar_month_outlined,
+    Icons.person_outline
+  ];
+  static const _activeIcons = [
+    Icons.home,
+    Icons.calendar_month,
+    Icons.person
+  ];
   static const _labels = ['首页', '日历', '我的'];
+
+  @override
+  void initState() {
+    super.initState();
+    ReminderService.init(ref);
+  }
+
+  @override
+  void dispose() {
+    ReminderService.dispose();
+    super.dispose();
+  }
 
   int _currentIndex(BuildContext context) {
     final loc = GoRouterState.of(context).uri.path;
@@ -21,11 +46,11 @@ class MainShell extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final currentIndex = _currentIndex(context);
 
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
         onDestinationSelected: (i) => context.go(_tabs[i]),

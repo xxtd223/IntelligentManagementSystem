@@ -31,6 +31,14 @@ class _AiChatOverlayState extends ConsumerState<AiChatOverlay> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(chatProvider.notifier).markRead();
+    });
+  }
+
   Future<void> _send(String text) async {
     if (text.trim().isEmpty || _sending) return;
     _inputCtrl.clear();
@@ -254,21 +262,53 @@ class _MessageBubble extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: isUser ? AppColors.primary : Colors.grey[100],
+                color: message.isReminder
+                    ? const Color(0xFFFFF3E0)
+                    : isUser
+                        ? AppColors.primary
+                        : Colors.grey[100],
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
                   bottomLeft: Radius.circular(isUser ? 16 : 4),
                   bottomRight: Radius.circular(isUser ? 4 : 16),
                 ),
+                border: message.isReminder
+                    ? Border.all(color: Colors.orange.withOpacity(0.4))
+                    : null,
               ),
               child: message.isLoading
                   ? _TypingIndicator()
-                  : Text(
-                      message.content,
-                      style: TextStyle(
-                          color: isUser ? Colors.white : AppColors.textPrimary,
-                          fontSize: 14),
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (message.isReminder)
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.notifications_active,
+                                    size: 14, color: Colors.orange),
+                                SizedBox(width: 4),
+                                Text('打卡提醒',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.orange,
+                                        fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                        Text(
+                          message.content,
+                          style: TextStyle(
+                              color: isUser
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
+                              fontSize: 14),
+                        ),
+                      ],
                     ),
             ),
           ),

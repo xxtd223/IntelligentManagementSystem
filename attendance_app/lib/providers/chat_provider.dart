@@ -11,6 +11,26 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
 
   final Ref _ref;
   String? _sessionKey;
+  bool _hasUnread = false;
+
+  bool get hasUnreadReminder => _hasUnread;
+
+  void markRead() {
+    if (_hasUnread) {
+      _hasUnread = false;
+    }
+  }
+
+  void addReminderMessage(String text) {
+    final msg = ChatMessage(
+      role: MessageRole.assistant,
+      content: text,
+      timestamp: DateTime.now(),
+      isReminder: true,
+    );
+    state = [...state, msg];
+    _hasUnread = true;
+  }
 
   Future<void> sendMessage(String text) async {
     final userMsg = ChatMessage(
@@ -54,7 +74,6 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
         await LocalStorage.saveAiSessionKey(newSessionKey);
       }
 
-      // 如果有打卡操作，刷新考勤状态
       if (actionTaken == 'CHECK_IN' || actionTaken == 'CHECK_OUT') {
         _ref.read(attendanceProvider.notifier).loadToday();
       }
@@ -80,10 +99,17 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
     _sessionKey = null;
     await LocalStorage.saveAiSessionKey('');
     state = [];
+    _hasUnread = false;
   }
 }
 
 final chatProvider =
     StateNotifierProvider<ChatNotifier, List<ChatMessage>>((ref) {
   return ChatNotifier(ref);
+});
+
+final chatUnreadProvider = Provider<bool>((ref) {
+  final notifier = ref.watch(chatProvider.notifier);
+  ref.watch(chatProvider);
+  return notifier.hasUnreadReminder;
 });

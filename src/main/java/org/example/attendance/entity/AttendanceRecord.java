@@ -15,7 +15,7 @@ public class AttendanceRecord {
 
     public enum CheckType { CHECK_IN, CHECK_OUT }
     public enum RecordStatus { NORMAL, LATE, EARLY_LEAVE, INVALID, OUTSIDE_RANGE }
-    public enum Source { APP, AI_CHAT }
+    public enum Source { APP, AI_CHAT, MANUAL }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

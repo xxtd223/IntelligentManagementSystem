@@ -3,9 +3,11 @@ package org.example.attendance.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.attendance.dto.response.ApiResponse;
 import org.example.attendance.service.WorkCalendarService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +25,19 @@ public class WorkCalendarController {
                                @RequestParam int month) {
         Long targetId = employeeId != null ? employeeId : currentUserId;
         return ApiResponse.ok(workCalendarService.getCalendar(targetId, year, month));
+    }
+
+    @PostMapping("/location-batch")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<?> locationBatch(@AuthenticationPrincipal Long adminId,
+                                        @RequestBody Map<String, Object> body) {
+        Long locationId = Long.parseLong(body.get("locationId").toString());
+        LocalDate startDate = LocalDate.parse((String) body.get("startDate"));
+        LocalDate endDate = LocalDate.parse((String) body.get("endDate"));
+        boolean isWorkDay = (Boolean) body.getOrDefault("isWorkDay", true);
+        String note = (String) body.get("note");
+        workCalendarService.batchUpdateForLocation(adminId, locationId, startDate, endDate, isWorkDay, note);
+        return ApiResponse.ok();
     }
 
     @PostMapping("/batch")

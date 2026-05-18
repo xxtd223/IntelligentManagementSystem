@@ -57,12 +57,7 @@ cd ManagementSystem
 ```
 或在 IntelliJ IDEA 中运行 `AttendanceApplication`
 
-后端启动后访问：http://localhost:8080/api/v1
-
-**默认账号：**
-- 管理员：`ADMIN001` / `Admin@123`
-- 员工：`EMP20240001` / `Test@123`
----
+后端启动后访问：http://localhost:8080/api/v1运行
 
 ### 二、移动端启动（Flutter）
 

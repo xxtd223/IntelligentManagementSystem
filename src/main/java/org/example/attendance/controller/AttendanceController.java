@@ -65,4 +65,18 @@ public class AttendanceController {
         LocalDate targetDate = date != null ? date : LocalDate.now();
         return ApiResponse.ok(attendanceService.getRecords(null, targetDate, targetDate));
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<?> manualEdit(@PathVariable Long id,
+                                     @RequestBody java.util.Map<String, Object> body) {
+        attendanceService.manualEdit(id, body);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/admin/manual")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<?> manualCreate(@RequestBody java.util.Map<String, Object> body) {
+        return ApiResponse.ok(attendanceService.manualCreate(body));
+    }
 }

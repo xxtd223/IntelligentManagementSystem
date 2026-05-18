@@ -5,12 +5,14 @@ class ChatMessage {
   final String content;
   final DateTime timestamp;
   final bool isLoading;
+  final bool isReminder;
 
   const ChatMessage({
     required this.role,
     required this.content,
     required this.timestamp,
     this.isLoading = false,
+    this.isReminder = false,
   });
 
   bool get isUser => role == MessageRole.user;
@@ -20,5 +22,6 @@ class ChatMessage {
         content: content ?? this.content,
         timestamp: timestamp,
         isLoading: isLoading ?? this.isLoading,
+        isReminder: isReminder,
       );
 }

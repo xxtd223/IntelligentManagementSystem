@@ -33,6 +33,24 @@ public class WorkCalendarService {
     }
 
     @Transactional
+    public void batchUpdateForLocation(Long adminId, Long locationId,
+            LocalDate startDate, LocalDate endDate, boolean isWorkDay, String note) {
+        List<Employee> employees = employeeRepository
+                .findByOfficeLocationIdAndStatus(locationId, Employee.Status.ACTIVE);
+        for (Employee employee : employees) {
+            for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+                WorkCalendar wc = workCalendarRepository
+                        .findByEmployeeIdAndWorkDate(employee.getId(), date)
+                        .orElse(WorkCalendar.builder().employee(employee).workDate(date).build());
+                wc.setIsWorkDay(isWorkDay);
+                wc.setNote(note);
+                wc.setCreatedBy(adminId);
+                workCalendarRepository.save(wc);
+            }
+        }
+    }
+
+    @Transactional
     public void batchUpdate(Long adminId, Long employeeId, List<Map<String, Object>> entries) {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.EMPLOYEE_NOT_FOUND));

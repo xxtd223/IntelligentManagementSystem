@@ -241,6 +241,51 @@ public class AttendanceService {
         );
     }
 
+    @Transactional
+    public void manualEdit(Long recordId, Map<String, Object> body) {
+        AttendanceRecord record = recordRepository.findById(recordId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "考勤记录不存在"));
+        if (body.containsKey("checkTime")) {
+            LocalDateTime newTime = LocalDateTime.parse((String) body.get("checkTime"));
+            record.setCheckTime(newTime);
+            record.setCheckDate(newTime.toLocalDate());
+        }
+        if (body.containsKey("status")) {
+            record.setStatus(AttendanceRecord.RecordStatus.valueOf((String) body.get("status")));
+        }
+        if (body.containsKey("isValid")) {
+            record.setIsValid((Boolean) body.get("isValid"));
+        }
+        if (body.containsKey("note")) {
+            record.setNote((String) body.get("note"));
+        }
+        recordRepository.save(record);
+    }
+
+    @Transactional
+    public AttendanceRecordDto manualCreate(Map<String, Object> body) {
+        Long employeeId = Long.parseLong(body.get("employeeId").toString());
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.EMPLOYEE_NOT_FOUND));
+        LocalDateTime checkTime = LocalDateTime.parse((String) body.get("checkTime"));
+        AttendanceRecord.CheckType checkType = AttendanceRecord.CheckType.valueOf(
+                (String) body.get("checkType"));
+        String statusStr = (String) body.getOrDefault("status", "NORMAL");
+        String note = (String) body.getOrDefault("note", "管理员手动录入");
+
+        AttendanceRecord record = AttendanceRecord.builder()
+                .employee(employee)
+                .checkDate(checkTime.toLocalDate())
+                .checkTime(checkTime)
+                .checkType(checkType)
+                .status(AttendanceRecord.RecordStatus.valueOf(statusStr))
+                .isValid(true)
+                .source(AttendanceRecord.Source.MANUAL)
+                .note(note)
+                .build();
+        return AttendanceRecordDto.from(recordRepository.save(record));
+    }
+
     private AttendanceRecord buildRecord(Employee employee, LocalDate date, LocalDateTime time,
                                           CheckInRequest request, OfficeLocation location,
                                           int distance, AttendanceRecord.RecordStatus status,

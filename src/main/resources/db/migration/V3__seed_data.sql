@@ -6,7 +6,7 @@ INSERT INTO department (name, description) VALUES
 
 -- 初始办公地点（示例坐标：上海陆家嘴）
 INSERT INTO office_location (name, address, latitude, longitude, allowed_radius) VALUES
-('上海总部', '上海市浦东新区陆家嘴环路1000号', 31.2367, 121.5016, 300),
+('长春总部', '吉林省长春市南关区天骄大厦', 43.8507, 125.3323, 500),
 ('北京分部', '北京市朝阳区建国路88号', 39.9042, 116.4074, 300);
 
 -- 考勤规则
