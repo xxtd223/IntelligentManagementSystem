@@ -16,6 +16,7 @@ class AppColors {
   static const checkInLate = Color(0xFFF59E0B);
   static const checkInMissing = Color(0xFFEF4444);
   static const checkInNormal = Color(0xFF2563EB);
+  static const checkInManual = Color(0xFF7C3AED);
 
   AppColors._();
 }

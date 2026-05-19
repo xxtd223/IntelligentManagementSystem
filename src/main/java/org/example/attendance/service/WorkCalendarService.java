@@ -32,6 +32,21 @@ public class WorkCalendarService {
         return workCalendarRepository.findByEmployeeIdAndWorkDateBetween(employeeId, start, end);
     }
 
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getCalendarForLocation(Long locationId, int year, int month) {
+        List<Employee> employees = employeeRepository
+                .findByOfficeLocationIdAndStatus(locationId, Employee.Status.ACTIVE);
+        if (employees.isEmpty()) return List.of();
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+        List<WorkCalendar> calendars = workCalendarRepository
+                .findByEmployeeIdAndWorkDateBetween(employees.get(0).getId(), start, end);
+        return calendars.stream().map(wc -> Map.<String, Object>of(
+                "date", wc.getWorkDate().toString(),
+                "isWorkDay", wc.getIsWorkDay()
+        )).collect(java.util.stream.Collectors.toList());
+    }
+
     @Transactional
     public void batchUpdateForLocation(Long adminId, Long locationId,
             LocalDate startDate, LocalDate endDate, boolean isWorkDay, String note) {

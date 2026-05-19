@@ -103,6 +103,7 @@ class _LocationCalendarTabState extends State<_LocationCalendarTab> {
   DateTime? _rangeEnd;
   final _noteCtrl = TextEditingController();
   bool _saving = false;
+  Map<DateTime, bool> _locationCalendar = {}; // date → isWorkDay (only explicitly set dates)
 
   @override
   void dispose() {
@@ -115,6 +116,7 @@ class _LocationCalendarTabState extends State<_LocationCalendarTab> {
     super.didUpdateWidget(old);
     if (widget.locations.isNotEmpty && _selectedLocationId == null) {
       _selectedLocationId = widget.locations.first['id'] as int;
+      _loadLocationCalendar();
     }
   }
 
@@ -123,7 +125,60 @@ class _LocationCalendarTabState extends State<_LocationCalendarTab> {
     super.initState();
     if (widget.locations.isNotEmpty) {
       _selectedLocationId = widget.locations.first['id'] as int;
+      _loadLocationCalendar();
     }
+  }
+
+  Future<void> _loadLocationCalendar() async {
+    if (_selectedLocationId == null) return;
+    try {
+      final resp = await DioClient.get(ApiConstants.workCalendarLocationGet, queryParams: {
+        'locationId': _selectedLocationId,
+        'year': _focusedDay.year,
+        'month': _focusedDay.month,
+      });
+      final list = resp['data'] as List? ?? [];
+      if (mounted) {
+        setState(() {
+          _locationCalendar = {
+            for (final e in list)
+              DateTime.parse(e['date'] as String): e['isWorkDay'] as bool,
+          };
+        });
+      }
+    } catch (_) {}
+  }
+
+  bool _isDefaultWorkday(DateTime day) =>
+      day.weekday >= DateTime.monday && day.weekday <= DateTime.friday;
+
+  Widget _locationDayCell(DateTime day,
+      {required bool isToday, required bool isSelected}) {
+    final key = DateTime(day.year, day.month, day.day);
+    final explicit = _locationCalendar[key]; // null = 未手动设置
+    final isWorkDay = explicit ?? _isDefaultWorkday(day);
+    final bg = isWorkDay
+        ? AppColors.checkInSuccess.withOpacity(0.28)
+        : Colors.grey[300]!;
+    return Container(
+      margin: const EdgeInsets.all(3),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      child: Center(
+        child: Text(
+          '${day.day}',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+            color: isToday
+                ? AppColors.primary
+                : isWorkDay
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
+            decoration: isToday ? TextDecoration.underline : null,
+          ),
+        ),
+      ),
+    );
   }
 
   String _rangeLabel() {
@@ -153,6 +208,7 @@ class _LocationCalendarTabState extends State<_LocationCalendarTab> {
         _rangeEnd = null;
         _noteCtrl.clear();
       });
+      await _loadLocationCalendar();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -190,7 +246,10 @@ class _LocationCalendarTabState extends State<_LocationCalendarTab> {
                         child: Text(e['name'] as String),
                       ))
                   .toList(),
-              onChanged: (v) => setState(() => _selectedLocationId = v),
+              onChanged: (v) {
+                setState(() => _selectedLocationId = v);
+                _loadLocationCalendar();
+              },
             )
           else
             const Card(
@@ -205,37 +264,58 @@ class _LocationCalendarTabState extends State<_LocationCalendarTab> {
           Card(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: TableCalendar(
-              firstDay: DateTime(2020),
-              lastDay: DateTime(2030),
-              focusedDay: _focusedDay,
-              rangeSelectionMode: RangeSelectionMode.enforced,
-              rangeStartDay: _rangeStart,
-              rangeEndDay: _rangeEnd,
-              onRangeSelected: (start, end, focused) {
-                setState(() {
-                  _rangeStart = start;
-                  _rangeEnd = end;
-                  _focusedDay = focused;
-                });
-              },
-              onPageChanged: (focused) =>
-                  setState(() => _focusedDay = focused),
-              calendarStyle: CalendarStyle(
-                rangeHighlightColor: AppColors.primary.withOpacity(0.15),
-                rangeStartDecoration: const BoxDecoration(
-                    color: AppColors.primary, shape: BoxShape.circle),
-                rangeEndDecoration: const BoxDecoration(
-                    color: AppColors.primary, shape: BoxShape.circle),
-                withinRangeDecoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.08),
-                    shape: BoxShape.rectangle),
-                todayDecoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.3),
-                    shape: BoxShape.circle),
-              ),
-              headerStyle:
-                  const HeaderStyle(formatButtonVisible: false),
+            child: Column(
+              children: [
+                TableCalendar(
+                  firstDay: DateTime(2020),
+                  lastDay: DateTime(2030),
+                  focusedDay: _focusedDay,
+                  rangeSelectionMode: RangeSelectionMode.enforced,
+                  rangeStartDay: _rangeStart,
+                  rangeEndDay: _rangeEnd,
+                  onRangeSelected: (start, end, focused) {
+                    setState(() {
+                      _rangeStart = start;
+                      _rangeEnd = end;
+                      _focusedDay = focused;
+                    });
+                  },
+                  onPageChanged: (focused) {
+                    setState(() => _focusedDay = focused);
+                    _loadLocationCalendar();
+                  },
+                  calendarBuilders: CalendarBuilders(
+                    defaultBuilder: (ctx, day, _) =>
+                        _locationDayCell(day, isToday: false, isSelected: false),
+                    todayBuilder: (ctx, day, _) =>
+                        _locationDayCell(day, isToday: true, isSelected: false),
+                  ),
+                  calendarStyle: CalendarStyle(
+                    rangeHighlightColor: AppColors.primary.withOpacity(0.3),
+                    rangeStartDecoration: const BoxDecoration(
+                        color: AppColors.primary, shape: BoxShape.circle),
+                    rangeEndDecoration: const BoxDecoration(
+                        color: AppColors.primary, shape: BoxShape.circle),
+                    withinRangeDecoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.2),
+                        shape: BoxShape.rectangle),
+                    defaultTextStyle: const TextStyle(fontSize: 13),
+                    weekendTextStyle: const TextStyle(fontSize: 13),
+                  ),
+                  headerStyle:
+                      const HeaderStyle(formatButtonVisible: false),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Wrap(
+                    spacing: 16,
+                    children: [
+                      _LegendDot(color: AppColors.checkInSuccess.withOpacity(0.5), label: '工作日'),
+                      _LegendDot(color: Colors.grey[300]!, label: '非工作日'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -381,13 +461,52 @@ class _EmployeeAttendanceTabState
     );
   }
 
-  Color _dayColor(CalendarDay? data) {
-    if (data == null) return Colors.transparent;
-    if (!data.isWorkDay) return Colors.grey[200]!;
-    if (data.isMissing) return AppColors.error.withOpacity(0.15);
-    if (data.isLate) return AppColors.warning.withOpacity(0.2);
-    if (data.hasCheckIn && data.hasCheckOut) return AppColors.checkInSuccess.withOpacity(0.15);
+  Color _dayColor(CalendarDay? data, DateTime day) {
+    if (data == null) {
+      // 数据未加载时按周末/工作日默认着色
+      return day.weekday > 5 ? Colors.grey[200]! : Colors.transparent;
+    }
+    if (!data.isWorkDay) return Colors.grey[250]!;
+    if (data.isMissing) return AppColors.error.withOpacity(0.3);
+    if (data.isLate) return AppColors.warning.withOpacity(0.35);
+    if (data.hasCheckIn && data.hasCheckOut) {
+      if (data.isManualCheckIn || data.isManualCheckOut) {
+        return AppColors.checkInManual.withOpacity(0.3);
+      }
+      return AppColors.checkInSuccess.withOpacity(0.3);
+    }
     return Colors.transparent;
+  }
+
+  Widget _buildAttendanceCell(DateTime day, {required bool isToday}) {
+    final d = _calendarData[DateTime(day.year, day.month, day.day)];
+    final bg = _dayColor(d, day);
+    return Container(
+      margin: const EdgeInsets.all(2),
+      decoration: bg == Colors.transparent
+          ? null
+          : BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${day.day}',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                color: d != null && !d.isWorkDay
+                    ? AppColors.textSecondary
+                    : AppColors.textPrimary,
+                decoration: isToday ? TextDecoration.underline : null,
+              ),
+            ),
+            if (d != null && d.isWorkDay && d.hasCheckIn)
+              const Icon(Icons.check, size: 8, color: AppColors.checkInSuccess),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -446,38 +565,10 @@ class _EmployeeAttendanceTabState
                       _loadCalendar();
                     },
                     calendarBuilders: CalendarBuilders(
-                      defaultBuilder: (context, day, focused) {
-                        final d = _calendarData[
-                            DateTime(day.year, day.month, day.day)];
-                        final bg = _dayColor(d);
-                        return Container(
-                          margin: const EdgeInsets.all(2),
-                          decoration: bg == Colors.transparent
-                              ? null
-                              : BoxDecoration(
-                                  color: bg,
-                                  borderRadius: BorderRadius.circular(6)),
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('${day.day}',
-                                    style: TextStyle(
-                                        fontSize: 13,
-                                        color: d != null && !d.isWorkDay
-                                            ? AppColors.textSecondary
-                                            : AppColors.textPrimary)),
-                                if (d != null && d.isWorkDay) ...[
-                                  if (d.hasCheckIn)
-                                    const Icon(Icons.login,
-                                        size: 8,
-                                        color: AppColors.checkInSuccess),
-                                ],
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                      defaultBuilder: (ctx, day, _) =>
+                          _buildAttendanceCell(day, isToday: false),
+                      todayBuilder: (ctx, day, _) =>
+                          _buildAttendanceCell(day, isToday: true),
                     ),
                     headerStyle:
                         const HeaderStyle(formatButtonVisible: false),
@@ -488,10 +579,14 @@ class _EmployeeAttendanceTabState
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Wrap(
                     spacing: 16,
+                    runSpacing: 6,
                     children: [
                       _LegendDot(
                           color: AppColors.checkInSuccess.withOpacity(0.4),
                           label: '正常出勤'),
+                      _LegendDot(
+                          color: AppColors.checkInManual.withOpacity(0.4),
+                          label: '补签'),
                       _LegendDot(
                           color: AppColors.warning.withOpacity(0.4),
                           label: '迟到'),
@@ -570,28 +665,47 @@ class _AttendanceEditDialogState extends State<_AttendanceEditDialog> {
     }
   }
 
-  Future<void> _addRecord(String checkType) async {
-    TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: checkType == 'CHECK_IN'
-          ? const TimeOfDay(hour: 9, minute: 0)
-          : const TimeOfDay(hour: 18, minute: 0),
-      helpText: checkType == 'CHECK_IN' ? '选择上班时间' : '选择下班时间',
-    );
-    if (picked == null || !mounted) return;
+  /// 补签：自动补上班（09:00）+ 补下班（18:00），各缺哪条补哪条
+  Future<void> _addMakeup() async {
+    final hasCheckIn =
+        _records.any((r) => r['checkType'] == 'CHECK_IN' && r['isValid'] == true);
+    final hasCheckOut =
+        _records.any((r) => r['checkType'] == 'CHECK_OUT' && r['isValid'] == true);
+
+    if (hasCheckIn && hasCheckOut) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('当天已有完整打卡记录，无需补签')));
+      }
+      return;
+    }
 
     final dateStr = widget.date.toString().substring(0, 10);
-    final timeStr =
-        '$dateStr T${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}:00';
-
-    await DioClient.post(ApiConstants.attendanceManual, data: {
-      'employeeId': widget.employeeId,
-      'checkTime': timeStr,
-      'checkType': checkType,
-      'note': '管理员手动录入',
-    });
-    await _load();
-    widget.onChanged();
+    try {
+      if (!hasCheckIn) {
+        await DioClient.post(ApiConstants.attendanceManual, data: {
+          'employeeId': widget.employeeId,
+          'checkTime': '${dateStr}T09:00:00',
+          'checkType': 'CHECK_IN',
+          'note': '管理员补签',
+        });
+      }
+      if (!hasCheckOut) {
+        await DioClient.post(ApiConstants.attendanceManual, data: {
+          'employeeId': widget.employeeId,
+          'checkTime': '${dateStr}T18:00:00',
+          'checkType': 'CHECK_OUT',
+          'note': '管理员补签',
+        });
+      }
+      await _load();
+      widget.onChanged();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('补签失败：$e')));
+      }
+    }
   }
 
   Future<void> _editRecord(Map<String, dynamic> record) async {
@@ -653,33 +767,22 @@ class _AttendanceEditDialogState extends State<_AttendanceEditDialog> {
                               ? () => _invalidate(r)
                               : null,
                         )),
-                  const Divider(height: 20),
-                  Row(
-                    children: [
-                      if (!hasCheckIn)
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _addRecord('CHECK_IN'),
-                            icon: const Icon(Icons.add, size: 16),
-                            label: const Text('补上班'),
-                            style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.checkInSuccess),
-                          ),
+                  if (!hasCheckIn || !hasCheckOut) ...[
+                    const Divider(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _addMakeup,
+                        icon: const Icon(Icons.edit_note, size: 18),
+                        label: const Text('补签（自动补全缺失打卡）'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.checkInManual,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                      if (!hasCheckIn && !hasCheckOut)
-                        const SizedBox(width: 8),
-                      if (!hasCheckOut)
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _addRecord('CHECK_OUT'),
-                            icon: const Icon(Icons.add, size: 16),
-                            label: const Text('补下班'),
-                            style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.primary),
-                          ),
-                        ),
-                    ],
-                  ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
       ),
@@ -704,6 +807,7 @@ class _RecordTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCheckIn = record['checkType'] == 'CHECK_IN';
     final isValid = record['isValid'] == true;
+    final isManual = (record['source'] as String?) == 'MANUAL';
     final checkTimeStr = record['checkTime'] as String;
     final dt = DateTime.parse(checkTimeStr);
     final timeLabel = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
@@ -714,15 +818,33 @@ class _RecordTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: Icon(
         isCheckIn ? Icons.login : Icons.logout,
-        color: isValid ? AppColors.primary : Colors.grey,
+        color: isValid
+            ? (isManual ? AppColors.checkInManual : AppColors.primary)
+            : Colors.grey,
         size: 20,
       ),
-      title: Text(
-        '${isCheckIn ? "上班" : "下班"}打卡  $timeLabel',
-        style: TextStyle(
-            fontSize: 14,
-            decoration: isValid ? null : TextDecoration.lineThrough,
-            color: isValid ? AppColors.textPrimary : Colors.grey),
+      title: Row(
+        children: [
+          Text(
+            '${isCheckIn ? "上班" : "下班"}打卡  $timeLabel',
+            style: TextStyle(
+                fontSize: 14,
+                decoration: isValid ? null : TextDecoration.lineThrough,
+                color: isValid ? AppColors.textPrimary : Colors.grey),
+          ),
+          if (isManual && isValid) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: AppColors.checkInManual.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text('补签',
+                  style: TextStyle(fontSize: 10, color: AppColors.checkInManual)),
+            ),
+          ],
+        ],
       ),
       subtitle: Text(
         _statusLabel(status) + (isValid ? '' : '  [已作废]'),

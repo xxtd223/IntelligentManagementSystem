@@ -52,6 +52,48 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return _calendarData[key];
   }
 
+  Widget _buildDayCell(DateTime day, {required bool isToday}) {
+    final data = _dayData(day);
+    Color? bg;
+    Color textColor = AppColors.textPrimary;
+
+    if (data != null) {
+      if (!data.isWorkDay) {
+        bg = Colors.grey[200];
+        textColor = AppColors.textSecondary;
+      } else if (data.isMissing) {
+        bg = AppColors.error.withOpacity(0.25);
+      } else if (data.isLate) {
+        bg = AppColors.warning.withOpacity(0.3);
+      } else if (data.hasCheckIn && data.hasCheckOut) {
+        final isManual = data.isManualCheckIn || data.isManualCheckOut;
+        bg = (isManual ? AppColors.checkInManual : AppColors.checkInSuccess)
+            .withOpacity(0.3);
+      }
+    } else if (day.weekday > 5) {
+      bg = Colors.grey[200];
+      textColor = AppColors.textSecondary;
+    }
+
+    return Container(
+      margin: const EdgeInsets.all(2),
+      decoration: bg == null
+          ? null
+          : BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      child: Center(
+        child: Text(
+          '${day.day}',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+            color: isToday ? AppColors.primary : textColor,
+            decoration: isToday ? TextDecoration.underline : null,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final selected = _selectedDay != null ? _dayData(_selectedDay!) : null;
@@ -109,32 +151,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 _loadMonth(focused);
               },
               calendarBuilders: CalendarBuilders(
-                markerBuilder: (context, day, events) {
-                  final data = _dayData(day);
-                  if (data == null || !data.isWorkDay) return null;
-                  final color = data.isMissing
-                      ? AppColors.checkInMissing
-                      : data.isLate
-                          ? AppColors.warning
-                          : data.hasCheckIn && data.hasCheckOut
-                              ? AppColors.checkInSuccess
-                              : AppColors.textSecondary;
-                  return Positioned(
-                    bottom: 2,
-                    child: Container(
-                      width: 6, height: 6,
-                      decoration: BoxDecoration(
-                          color: color, shape: BoxShape.circle),
-                    ),
-                  );
-                },
+                defaultBuilder: (ctx, day, _) =>
+                    _buildDayCell(day, isToday: false),
+                todayBuilder: (ctx, day, _) =>
+                    _buildDayCell(day, isToday: true),
               ),
               headerStyle: const HeaderStyle(formatButtonVisible: false),
-              calendarStyle: const CalendarStyle(
+              calendarStyle: CalendarStyle(
                 selectedDecoration: BoxDecoration(
-                    color: AppColors.primary, shape: BoxShape.circle),
-                todayDecoration: BoxDecoration(
-                    color: AppColors.primaryLight, shape: BoxShape.circle),
+                    color: AppColors.primary.withOpacity(0.25),
+                    shape: BoxShape.circle),
               ),
             ),
           ),

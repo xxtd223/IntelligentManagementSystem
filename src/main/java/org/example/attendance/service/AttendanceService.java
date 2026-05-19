@@ -172,7 +172,8 @@ public class AttendanceService {
 
         List<CalendarDayDto> result = new ArrayList<>();
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-            boolean isWorkDay = true;
+            // 默认周一到周五为工作日，周六日为非工作日；可被 WorkCalendar 覆盖
+            boolean isWorkDay = date.getDayOfWeek().getValue() <= 5;
             String note = null;
             WorkCalendar wc = calendarByDate.get(date);
             if (wc != null) {
@@ -203,6 +204,8 @@ public class AttendanceService {
                     .checkOutTime(checkOut != null ? checkOut.getCheckTime() : null)
                     .checkInStatus(checkIn != null ? checkIn.getStatus().name() : null)
                     .checkOutStatus(checkOut != null ? checkOut.getStatus().name() : null)
+                    .checkInSource(checkIn != null ? checkIn.getSource().name() : null)
+                    .checkOutSource(checkOut != null ? checkOut.getSource().name() : null)
                     .note(note)
                     .customStartTime(wc != null ? wc.getCustomStartTime() : null)
                     .customEndTime(wc != null ? wc.getCustomEndTime() : null)

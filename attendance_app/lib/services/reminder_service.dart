@@ -47,14 +47,12 @@ class ReminderService {
 
       final attendance = ref.read(attendanceProvider);
 
-      // 上班前15分钟提醒
+      final workStart = _parseTime(_workStartTime!);
+      // 上班提醒：从上班前15分钟起，直到当天23:59（只发一次）
       if (!sentFlags.contains('check_in')) {
-        final workStart = _parseTime(_workStartTime!);
         final remindAt = workStart.subtract(const Duration(minutes: 15));
-        final remindEnd = workStart.add(const Duration(minutes: 30));
-        if (now.isAfter(remindAt) &&
-            now.isBefore(remindEnd) &&
-            !attendance.hasCheckIn) {
+        final dayEnd = DateTime(now.year, now.month, now.day, 23, 59);
+        if (now.isAfter(remindAt) && now.isBefore(dayEnd) && !attendance.hasCheckIn) {
           final minLeft = workStart.difference(now).inMinutes;
           final msg = minLeft > 0
               ? '⏰ 上班提醒：距上班时间还有 $minLeft 分钟，请记得打卡！\n你可以说「帮我上班打卡」完成打卡。'
@@ -65,14 +63,12 @@ class ReminderService {
         }
       }
 
-      // 下班前10分钟提醒
-      if (!sentFlags.contains('check_out') && attendance.hasCheckIn) {
+      // 下班提醒：从下班前10分钟起，直到当天23:59（只发一次）
+      if (!sentFlags.contains('check_out') && attendance.hasCheckIn && _workEndTime != null) {
         final workEnd = _parseTime(_workEndTime!);
         final remindAt = workEnd.subtract(const Duration(minutes: 10));
-        final remindEnd = workEnd.add(const Duration(minutes: 30));
-        if (now.isAfter(remindAt) &&
-            now.isBefore(remindEnd) &&
-            !attendance.hasCheckOut) {
+        final dayEnd = DateTime(now.year, now.month, now.day, 23, 59);
+        if (now.isAfter(remindAt) && now.isBefore(dayEnd) && !attendance.hasCheckOut) {
           final minLeft = workEnd.difference(now).inMinutes;
           final msg = minLeft > 0
               ? '⏰ 下班提醒：距下班时间还有 $minLeft 分钟，别忘了打下班卡！\n你可以说「帮我下班打卡」完成打卡。'

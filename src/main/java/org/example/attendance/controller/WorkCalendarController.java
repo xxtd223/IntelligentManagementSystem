@@ -18,6 +18,14 @@ public class WorkCalendarController {
 
     private final WorkCalendarService workCalendarService;
 
+    @GetMapping("/location")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<?> getForLocation(@RequestParam Long locationId,
+                                          @RequestParam int year,
+                                          @RequestParam int month) {
+        return ApiResponse.ok(workCalendarService.getCalendarForLocation(locationId, year, month));
+    }
+
     @GetMapping
     public ApiResponse<?> get(@AuthenticationPrincipal Long currentUserId,
                                @RequestParam(required = false) Long employeeId,

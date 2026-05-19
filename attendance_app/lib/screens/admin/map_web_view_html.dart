@@ -33,9 +33,11 @@ class _MapWebViewState extends State<MapWebView> {
     const key = ApiConstants.amapWebKey;
     _viewId = 'amap-picker-${DateTime.now().millisecondsSinceEpoch}';
 
+    const secCode = ApiConstants.amapSecurityCode;
+    final secParam = secCode.isNotEmpty ? '&securityCode=$secCode' : '';
     ui_web.platformViewRegistry.registerViewFactory(_viewId, (int id) {
       return html.IFrameElement()
-        ..src = 'amap_picker.html?lat=$lat&lng=$lng&key=$key'
+        ..src = 'amap_picker.html?lat=$lat&lng=$lng&key=$key$secParam'
         ..style.width = '100%'
         ..style.height = '100%'
         ..style.border = 'none';

@@ -35,7 +35,13 @@
     var initLat = parseFloat(params.get('lat') || '39.909187');
     var initLng = parseFloat(params.get('lng') || '116.397451');
     var key = params.get('key') || '';
+    var securityCode = params.get('securityCode') || '';
     var selLat = initLat, selLng = initLng, selAddr = '';
+
+    // 高德 JS API 2.0 安全模式：若有安全码则提前注入
+    if (securityCode) {
+      window._AMapSecurityConfig = { securityJsCode: securityCode };
+    }
 
     // 动态加载高德地图 JS API（Web 端，v2.0）
     var script = document.createElement('script');

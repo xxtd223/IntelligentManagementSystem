@@ -18,6 +18,7 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
   void markRead() {
     if (_hasUnread) {
       _hasUnread = false;
+      state = [...state]; // 触发 chatUnreadProvider 重建以消除红点
     }
   }
 
