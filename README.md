@@ -137,9 +137,7 @@ DASHSCOPE_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 2. 点击「创建新应用」，服务平台选择 **Web端(JS API)**
 3. 在应用详情中找到：
    - **API Key**：填入 `amapWebKey`
-   - **JS安全密钥（安全验证码）**：填入 `amapSecurityCode`
-
-> **注意**：2021 年后创建的应用默认开启安全模式，两项均需填写；缺少安全密钥时地图可加载但瓦片（底图）不会显示。
+   - **JS安全密钥 **：填入 `amapSecurityCode`
 
 **配置文件位置：**
 
